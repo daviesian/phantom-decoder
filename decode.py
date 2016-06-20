@@ -20,7 +20,7 @@ class PositionFrame(Frame):
     def __init__(self, raw_frame):
         super(PositionFrame, self).__init__(raw_frame)
 
-        lon, lat, alt, x_speed, y_speed, z_speed, pitch, roll, yaw = struct.unpack_from('<ddhhhhhhh', self.body, 0)
+        lon, lat, alt, x_speed, y_speed, z_speed, pitch, roll, yaw, self.fly_c_state_raw, _, _, self.satellites = struct.unpack_from('<ddhhhhhhhhhhB', self.body, 0)
 
         self.longitude = degrees(lon)
         self.latitude = degrees(lat)
@@ -35,7 +35,7 @@ class PositionFrame(Frame):
         self.__unknown = self.body[30:]
 
     def __repr__(self):
-        return "<PositionFrame: (%.05f, %.05f), %4.01f m, %s, %s, %s, %s, %s, %s>" % (self.latitude, self.longitude, self.altitude, self.x_speed, self.y_speed, self.z_speed, self.pitch, self.roll, self.yaw)
+        return "<PositionFrame: (%.05f, %.05f), %4.01f m, %s, %s, %s, %s, %s, %s, %s>" % (self.latitude, self.longitude, self.altitude, self.x_speed, self.y_speed, self.z_speed, self.pitch, self.roll, self.yaw, self.satellites)
 
 
 class TimeFrame(Frame):
@@ -99,13 +99,38 @@ class Frame6(Frame):
     pass
 
 
-# Possibly battery?
-class Frame7(Frame):
-    pass
+class BatteryFrame(Frame):
+
+    def __init__(self, raw_frame):
+        super(BatteryFrame, self).__init__(raw_frame)
+
+        percent, \
+        current_pv, \
+        self.current_capacity, \
+        self.total_capacity, \
+        self.life, \
+        self.loop_num, \
+        self.error_type, \
+        self.current, \
+        voltage_cell_1, \
+        voltage_cell_2, \
+        voltage_cell_3, \
+        voltage_cell_4, \
+        voltage_cell_5, \
+        voltage_cell_6, \
+        self.serial_no, \
+        __dosdate, \
+        temperature = struct.unpack_from("<BHHHBIHhHHHHHHHHH", self.body, 0)
+
+        self.percent = percent
+        self.current_pv = current_pv / 1000.0
+        self.voltages = [voltage_cell_1 / 1000.0, voltage_cell_2 / 1000.0, voltage_cell_3 / 1000.0, voltage_cell_4 / 1000.0, voltage_cell_5 / 1000.0, voltage_cell_6 / 1000.0]
+        self.date = datetime.date((ord(self.body[-4]) >> 1) + 1980,((ord(self.body[-4]) & 0x1) << 3) | (ord(self.body[-5]) >> 5),ord(self.body[-5]) & 0x1f)
+        self.temperature = temperature / 10 - 273.15
 
 
 # No idea.
-class Frame8(Frame):
+class SmartBatteryFrame(Frame):
     pass
 
 
@@ -166,9 +191,9 @@ while i < len(body):
     elif frame_type == 6:
         frames.append(Frame6(f))
     elif frame_type == 7:
-        frames.append(Frame7(f))
+        frames.append(BatteryFrame(f))
     elif frame_type == 8:
-        frames.append(Frame8(f))
+        frames.append(SmartBatteryFrame(f))
     elif frame_type == 11:
         frames.append(Frame11(f))
     elif frame_type == 13:
@@ -181,10 +206,13 @@ while i < len(body):
 
 print "Parsed %d frames" % len(frames)
 
-c = 0
-for f in frames:
-    if isinstance(f, Frame15):
-        c += 1
-        print f
+with open("for_analysis2.bin", "wb") as out:
+    c = 0
+    for f in frames:
+        if isinstance(f, PositionFrame):
+            c += 1
+            print f
+            out.write(f.body)
+            print len(f.body)
 
 print "Printed %s frames." % c
