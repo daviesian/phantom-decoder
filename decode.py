@@ -89,6 +89,40 @@ class GimbalFrame(Frame):
     def __repr__(self):
         return "<GimbalFrame: %s, %s, %s, %s>" % (self.gimbal_pitch, self.gimbal_roll, self.gimbal_yaw, self.__counter)
 
+# Always identical.
+class Frame2(Frame):
+    pass
+
+
+# Always one byte. 0x20 or 0xa0.
+class Frame6(Frame):
+    pass
+
+
+# Possibly battery?
+class Frame7(Frame):
+    pass
+
+
+# No idea.
+class Frame8(Frame):
+    pass
+
+
+# Always entirely zero
+class Frame11(Frame):
+    pass
+
+
+# Not many of these. Quite long. Text?
+class Frame13(Frame):
+    pass
+
+
+# Not many, not long. All identical.
+class Frame15(Frame):
+    pass
+
 
 class UnknownFrame(Frame):
     pass
@@ -127,6 +161,20 @@ while i < len(body):
         frames.append(ControllerFrame(f))
     elif frame_type == 3:
         frames.append(GimbalFrame(f))
+    elif frame_type == 2:
+        frames.append(Frame2(f))
+    elif frame_type == 6:
+        frames.append(Frame6(f))
+    elif frame_type == 7:
+        frames.append(Frame7(f))
+    elif frame_type == 8:
+        frames.append(Frame8(f))
+    elif frame_type == 11:
+        frames.append(Frame11(f))
+    elif frame_type == 13:
+        frames.append(Frame13(f))
+    elif frame_type == 15:
+        frames.append(Frame15(f))
     else:
         frames.append(UnknownFrame(f))
 
@@ -135,7 +183,7 @@ print "Parsed %d frames" % len(frames)
 
 c = 0
 for f in frames:
-    if not isinstance(f, UnknownFrame):
+    if isinstance(f, Frame15):
         c += 1
         print f
 
