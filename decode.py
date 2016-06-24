@@ -1,6 +1,7 @@
 import struct
 from math import degrees
 import datetime
+import time
 
 def hexstr(arr):
     return " ".join([format(ord(x), "02x") for x in arr])
@@ -14,30 +15,49 @@ class Frame(object):
     def __repr__(self):
         return "<Frame %s: %s>" % (self.type, hexstr(self.body))
 
-
+# Basically done
 class PositionFrame(Frame):
 
     def __init__(self, raw_frame):
         super(PositionFrame, self).__init__(raw_frame)
 
-        lon, lat, alt, x_speed, y_speed, z_speed, pitch, roll, yaw, self.fly_c_state_raw, _, _, self.satellites = struct.unpack_from('<ddhhhhhhhhhhB', self.body, 0)
+        lon, \
+        lat, \
+        ascent, \
+        x_speed, \
+        y_speed, \
+        z_speed, \
+        pitch, \
+        roll, \
+        yaw, \
+        __fly_c_state, \
+        _, \
+        _, \
+        self.satellites, \
+        __flight_action, \
+        __motor_start_failed_cause, \
+        __non_gps_cause, \
+        __battery, \
+        __s_wave_height, \
+        fly_time, \
+        __motor_revolution, \
+            = struct.unpack_from('<ddhhhhhhhhhhBBBBBBHH', self.body, 0)
 
         self.longitude = degrees(lon)
         self.latitude = degrees(lat)
-        self.altitude = alt / 10.0
+        self.ascent = ascent / 10.0
         self.x_speed = x_speed / 10.0
         self.y_speed = y_speed / 10.0
         self.z_speed = z_speed / 10.0
         self.pitch = pitch / 10.0
         self.roll = roll / 10.0
         self.yaw = yaw / 10.0 % 360
-
-        self.__unknown = self.body[30:]
+        self.fly_time = fly_time / 10.0
 
     def __repr__(self):
-        return "<PositionFrame: (%.05f, %.05f), %4.01f m, %s, %s, %s, %s, %s, %s, %s>" % (self.latitude, self.longitude, self.altitude, self.x_speed, self.y_speed, self.z_speed, self.pitch, self.roll, self.yaw, self.satellites)
+        return "<PositionFrame: (%.05f, %.05f), %4.01f m, %s, %s, %s, %s, %s, %s, %s, %s>" % (self.latitude, self.longitude, self.ascent, self.x_speed, self.y_speed, self.z_speed, self.pitch, self.roll, self.yaw, self.satellites, self.fly_time)
 
-
+# Basically done
 class TimeFrame(Frame):
 
     def __init__(self, raw_frame):
@@ -56,31 +76,36 @@ class TimeFrame(Frame):
     def __repr__(self):
         return "<TimeFrame: %.02f m/s, %.01f m, %s>" % (self.speed, self.distance, self.timestamp)
 
-
+# Basically done
 class ControllerFrame(Frame):
 
     def __init__(self, raw_frame):
         super(ControllerFrame, self).__init__(raw_frame)
 
-        aileron, elevator, throttle, rudder = struct.unpack_from("<HHHH", self.body, 0)
+        aileron, elevator, throttle, rudder, _, _, _, _, _ = struct.unpack_from("<HHHHHBBBB", self.body, 0)
 
         self.aileron = aileron / 1024.0 - 1
         self.elevator = elevator / 1024.0 - 1
         self.throttle = throttle / 1024.0 - 1
         self.rudder = rudder / 1024.0 - 1
 
-        self.__unknown = self.body[8:]
-
     def __repr__(self):
         return "<ControllerFrame: %.02f, %.02f, %.02f, %.02f>" % (self.throttle, self.rudder, self.elevator, self.aileron)
 
-
+# Done
 class GimbalFrame(Frame):
 
     def __init__(self, raw_frame):
         super(GimbalFrame, self).__init__(raw_frame)
 
-        pitch, roll, yaw, self.__unknown1, self.__roll_adjust, self.__unknown2, self.__unknown3, self.__unknown4, self.__unknown5, self.__counter = struct.unpack_from("<hhhBBBBBBI", self.body, 0)
+        pitch, roll, yaw, \
+        self.__mode, \
+        self.__roll_adjust, \
+        self.__yaw_angle, \
+        self.__is_auto_calibration, \
+        self.__auto_calibration_result, \
+        self.__version, \
+        self.__counter = struct.unpack_from("<hhhBBBBBBI", self.body, 0)
 
         self.gimbal_pitch = pitch / 10.0
         self.gimbal_roll = roll / 10.0
@@ -90,15 +115,29 @@ class GimbalFrame(Frame):
         return "<GimbalFrame: %s, %s, %s, %s>" % (self.gimbal_pitch, self.gimbal_roll, self.gimbal_yaw, self.__counter)
 
 # Always identical.
-class Frame2(Frame):
-    pass
+class HomeFrame(Frame):
+
+    def __init__(self, raw_frame):
+        super(HomeFrame, self).__init__(raw_frame)
+
+        lat, lon, head = struct.unpack_from("<ddf", self.body, 0)
+
+        self.go_home_height, = struct.unpack_from("<H", self.body, 30)
+
+        self.latitude = degrees(lat)
+        self.longitude = degrees(lon)
+        self.heading = head / 10
+
+    def __repr__(self):
+        return "<HomeFrame: %s, %s, %s, %s>" % (self.latitude, self.longitude, self.heading, self.go_home_height)
+
 
 
 # Always one byte. 0x20 or 0xa0.
 class Frame6(Frame):
     pass
 
-
+# Basically done.
 class BatteryFrame(Frame):
 
     def __init__(self, raw_frame):
@@ -111,7 +150,7 @@ class BatteryFrame(Frame):
         self.life, \
         self.loop_num, \
         self.error_type, \
-        self.current, \
+        current, \
         voltage_cell_1, \
         voltage_cell_2, \
         voltage_cell_3, \
@@ -119,19 +158,73 @@ class BatteryFrame(Frame):
         voltage_cell_5, \
         voltage_cell_6, \
         self.serial_no, \
-        __dosdate, \
+        _date, \
         temperature = struct.unpack_from("<BHHHBIHhHHHHHHHHH", self.body, 0)
 
         self.percent = percent
         self.current_pv = current_pv / 1000.0
+        self.current = current / 1000.0
         self.voltages = [voltage_cell_1 / 1000.0, voltage_cell_2 / 1000.0, voltage_cell_3 / 1000.0, voltage_cell_4 / 1000.0, voltage_cell_5 / 1000.0, voltage_cell_6 / 1000.0]
-        self.date = datetime.date((ord(self.body[-4]) >> 1) + 1980,((ord(self.body[-4]) & 0x1) << 3) | (ord(self.body[-5]) >> 5),ord(self.body[-5]) & 0x1f)
+        self.manufacture_date = datetime.date((ord(self.body[-4]) >> 1) + 1980,((ord(self.body[-4]) & 0x1) << 3) | (ord(self.body[-5]) >> 5),ord(self.body[-5]) & 0x1f)
         self.temperature = temperature / 10 - 273.15
 
+    def __repr__(self):
+        return "<BatteryFrame: %s %s %s %s %s %s %s %s %s %s %s %s>" % (self.percent,
+                                                                                self.current_pv,
+                                                                                self.current_capacity,
+                                                                                self.total_capacity,
+                                                                                self.life,
+                                                                                self.loop_num,
+                                                                                self.error_type,
+                                                                                self.current,
+                                                                                self.voltages,
+                                                                       self.serial_no,
+                                                                       self.manufacture_date,
+                                                                       self.temperature)
 
-# No idea.
+# Basically done
 class SmartBatteryFrame(Frame):
-    pass
+
+    def __init__(self, raw_frame):
+        super(SmartBatteryFrame, self).__init__(raw_frame)
+
+        self.useful_time, \
+        self.go_home_time, \
+        self.land_time, \
+        self.go_home_battery, \
+        self.land_battery, \
+        __safe_fly_radius, \
+        __volume_consume, \
+        __status, \
+        __go_home_status, \
+        __go_home_countdown, \
+        voltage, \
+        self.percent, \
+        self.low_warning, \
+            = struct.unpack_from("<HHHHHffHHHHBB", self.body, 0)
+
+        self.voltage = voltage / 1000.0
+
+    def __repr__(self):
+        return "<SmartBatteryFrame: %s %s %s %s %s %s %s %s>" % (self.useful_time,
+                                                                 self.go_home_time,
+                                                                 self.land_time,
+                                                                 self.go_home_battery,
+                                                                 self.land_battery,
+                                                                 self.voltage,
+                                                                 self.percent,
+                                                                 self.low_warning)
+
+
+class MessageFrame(Frame):
+
+    def __init__(self, raw_frame):
+        super(MessageFrame, self).__init__(raw_frame)
+
+        self.message = struct.unpack("%ss" % len(self.body), self.body)
+
+    def __repr__(self):
+        return "<MessageFrame: '%s'>" % (self.message)
 
 
 # Always entirely zero
@@ -139,12 +232,42 @@ class Frame11(Frame):
     pass
 
 
-# Not many of these. Quite long. Text?
-class Frame13(Frame):
-    pass
+# Done
+class AircraftFrame(Frame):
+    def __init__(self, raw_frame):
+        super(AircraftFrame, self).__init__(raw_frame)
+
+        self.drone_type, \
+        self.app_type, \
+        app_version_1, \
+        app_version_2, \
+        app_version_3, \
+        self.aircraft_serial_no, \
+        aircraft_name, \
+        active_timestamp, \
+        self.camera_serial_no, \
+        self.controller_serial_no, \
+        self.battery_serial_no, \
+            = struct.unpack_from("<BBBBB10s32sQ10s10s10s", self.body)
+
+        self.app_version = [app_version_1, app_version_2, app_version_3]
+        self.aircraft_name = aircraft_name.replace("\0","")
+        self.active_timestamp = time.ctime(active_timestamp)
+
+    def __repr__(self):
+        return "<AircraftFrame: %s %s %s %s %s %s %s %s %s>" % (self.drone_type,
+                                                                      self.app_type,
+                                                                      self.app_version,
+                                                                      self.aircraft_serial_no,
+                                                                      self.aircraft_name,
+                                                                      self.active_timestamp,
+                                                                      self.camera_serial_no,
+                                                                      self.controller_serial_no,
+                                                                      self.battery_serial_no)
 
 
-# Not many, not long. All identical.
+
+# Not many, not long. All identical. No idea.
 class Frame15(Frame):
     pass
 
@@ -153,7 +276,7 @@ class UnknownFrame(Frame):
     pass
 
 
-with open("R:/Phantom/Fen Ditton/Evening 1/DJIFlightRecord_2016-06-18_[21-05-26].txt",'rb') as f:
+with open("C:\dev\misc\phantom-decoder\__DJIFlightRecord_2016-06-18_[21-05-26].txt",'rb') as f:
     body = f.read()
 
 __header = body[:12]
@@ -187,17 +310,19 @@ while i < len(body):
     elif frame_type == 3:
         frames.append(GimbalFrame(f))
     elif frame_type == 2:
-        frames.append(Frame2(f))
+        frames.append(HomeFrame(f))
     elif frame_type == 6:
         frames.append(Frame6(f))
     elif frame_type == 7:
         frames.append(BatteryFrame(f))
     elif frame_type == 8:
         frames.append(SmartBatteryFrame(f))
+    elif frame_type == 9:
+        frames.append(MessageFrame(f))
     elif frame_type == 11:
         frames.append(Frame11(f))
     elif frame_type == 13:
-        frames.append(Frame13(f))
+        frames.append(AircraftFrame(f))
     elif frame_type == 15:
         frames.append(Frame15(f))
     else:
@@ -206,13 +331,14 @@ while i < len(body):
 
 print "Parsed %d frames" % len(frames)
 
-with open("for_analysis2.bin", "wb") as out:
+with open("for_analysis.bin", "wb") as out:
     c = 0
     for f in frames:
-        if isinstance(f, PositionFrame):
+        if isinstance(f, HomeFrame):
             c += 1
             print f
             out.write(f.body)
+
             print len(f.body)
 
 print "Printed %s frames." % c
