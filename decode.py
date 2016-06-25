@@ -2,6 +2,7 @@ import struct
 from math import degrees
 import datetime
 import time
+import os
 
 def hexstr(arr):
     return " ".join([format(ord(x), "02x") for x in arr])
@@ -120,16 +121,18 @@ class HomeFrame(Frame):
     def __init__(self, raw_frame):
         super(HomeFrame, self).__init__(raw_frame)
 
-        lat, lon, head = struct.unpack_from("<ddf", self.body, 0)
+        lat, lon, alt = struct.unpack_from("<ddf", self.body, 0)
 
-        self.go_home_height, = struct.unpack_from("<H", self.body, 30)
+        self._go_home_height, = struct.unpack_from("<H", self.body, 30)
 
         self.latitude = degrees(lat)
         self.longitude = degrees(lon)
-        self.heading = head / 10
+        self.pressure_altitude = alt / 10 # See https://en.wikipedia.org/wiki/Pressure_altitude
+
+        self.pressure = 1013.25 * ((1-(self.pressure_altitude/44307.69396))**5.2553)
 
     def __repr__(self):
-        return "<HomeFrame: %s, %s, %s, %s>" % (self.latitude, self.longitude, self.heading, self.go_home_height)
+        return "<HomeFrame: %s, %s, %s, %s>" % (self.latitude, self.longitude, self.pressure_altitude, self.pressure)
 
 
 
@@ -276,69 +279,71 @@ class UnknownFrame(Frame):
     pass
 
 
-with open("C:\dev\misc\phantom-decoder\__DJIFlightRecord_2016-06-18_[21-05-26].txt",'rb') as f:
-    body = f.read()
+def read_file(path):
 
-__header = body[:12]
-body = body[12:]
-frames = []
+    with open(path,'rb') as f:
+        body = f.read()
 
-i = 0
-while i < len(body):
-    frame_type = ord(body[i])
-    frame_size = ord(body[i+1])
-    frame_end = i+2+frame_size
-    frame_body = body[i+2:frame_end]
-    trailer = body[frame_end]
-    if trailer != '\xff':
-        # Probably the end of the file. Don't understand the final chunk yet.
+    __header = body[:12]
+    body = body[12:]
+    frames = []
+
+    i = 0
+    while i < len(body):
+        frame_type = ord(body[i])
+        frame_size = ord(body[i+1])
+        frame_end = i+2+frame_size
+        frame_body = body[i+2:frame_end]
+        trailer = body[frame_end]
+        if trailer != '\xff':
+            # Probably the end of the file. Don't understand the final chunk yet.
+            break
+
+        i+= frame_size+3
+
+        f = {
+            "type": frame_type,
+            "body": frame_body
+        }
+
+        if frame_type == 1:
+            frames.append(PositionFrame(f))
+        elif frame_type == 5:
+            frames.append(TimeFrame(f))
+        elif frame_type == 4:
+            frames.append(ControllerFrame(f))
+        elif frame_type == 3:
+            frames.append(GimbalFrame(f))
+        elif frame_type == 2:
+            frames.append(HomeFrame(f))
+        elif frame_type == 6:
+            frames.append(Frame6(f))
+        elif frame_type == 7:
+            frames.append(BatteryFrame(f))
+        elif frame_type == 8:
+            frames.append(SmartBatteryFrame(f))
+        elif frame_type == 9:
+            frames.append(MessageFrame(f))
+        elif frame_type == 11:
+            frames.append(Frame11(f))
+        elif frame_type == 13:
+            frames.append(AircraftFrame(f))
+        elif frame_type == 15:
+            frames.append(Frame15(f))
+        else:
+            frames.append(UnknownFrame(f))
+
+
+    print "Parsed %d frames" % len(frames)
+
+    return frames
+
+path = "R:\Phantom\Log Test\Loft 2\DJIFlightRecord_2016-06-25_[13-10-22].txt" #folder + "\\" + f
+
+frames = read_file(path)
+
+for f in frames:
+    if isinstance(f, HomeFrame):
+        print f
         break
 
-    i+= frame_size+3
-
-    f = {
-        "type": frame_type,
-        "body": frame_body
-    }
-
-    if frame_type == 1:
-        frames.append(PositionFrame(f))
-    elif frame_type == 5:
-        frames.append(TimeFrame(f))
-    elif frame_type == 4:
-        frames.append(ControllerFrame(f))
-    elif frame_type == 3:
-        frames.append(GimbalFrame(f))
-    elif frame_type == 2:
-        frames.append(HomeFrame(f))
-    elif frame_type == 6:
-        frames.append(Frame6(f))
-    elif frame_type == 7:
-        frames.append(BatteryFrame(f))
-    elif frame_type == 8:
-        frames.append(SmartBatteryFrame(f))
-    elif frame_type == 9:
-        frames.append(MessageFrame(f))
-    elif frame_type == 11:
-        frames.append(Frame11(f))
-    elif frame_type == 13:
-        frames.append(AircraftFrame(f))
-    elif frame_type == 15:
-        frames.append(Frame15(f))
-    else:
-        frames.append(UnknownFrame(f))
-
-
-print "Parsed %d frames" % len(frames)
-
-with open("for_analysis.bin", "wb") as out:
-    c = 0
-    for f in frames:
-        if isinstance(f, HomeFrame):
-            c += 1
-            print f
-            out.write(f.body)
-
-            print len(f.body)
-
-print "Printed %s frames." % c
