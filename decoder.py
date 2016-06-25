@@ -65,9 +65,9 @@ class TimeFrame(Frame):
         super(TimeFrame, self).__init__(raw_frame)
 
         # TODO: Work out first 2 bytes. Probably includes isVideo
-        self.speed, self.distance, ts = struct.unpack_from("<ffQ", self.body, 2)
+        self.speed, self.distance, self.ts = struct.unpack_from("<ffQ", self.body, 2)
 
-        self.timestamp = datetime.datetime.utcfromtimestamp(ts/1000.0)
+        self.timestamp = datetime.datetime.utcfromtimestamp(self.ts/1000.0)
         self.__unknown = self.body[:2]
 
         # Speed is m/s
@@ -108,12 +108,12 @@ class GimbalFrame(Frame):
         self.__version, \
         self.__counter = struct.unpack_from("<hhhBBBBBBI", self.body, 0)
 
-        self.gimbal_pitch = pitch / 10.0
-        self.gimbal_roll = roll / 10.0
-        self.gimbal_yaw = yaw / 10.0 % 360
+        self.pitch = pitch / 10.0
+        self.roll = roll / 10.0
+        self.yaw = yaw / 10.0 % 360
 
     def __repr__(self):
-        return "<GimbalFrame: %s, %s, %s, %s>" % (self.gimbal_pitch, self.gimbal_roll, self.gimbal_yaw, self.__counter)
+        return "<GimbalFrame: %s, %s, %s, %s>" % (self.pitch, self.roll, self.yaw, self.__counter)
 
 # Always identical.
 class HomeFrame(Frame):
@@ -146,7 +146,7 @@ class BatteryFrame(Frame):
     def __init__(self, raw_frame):
         super(BatteryFrame, self).__init__(raw_frame)
 
-        percent, \
+        self.percent, \
         current_pv, \
         self.current_capacity, \
         self.total_capacity, \
@@ -164,7 +164,6 @@ class BatteryFrame(Frame):
         _date, \
         temperature = struct.unpack_from("<BHHHBIHhHHHHHHHHH", self.body, 0)
 
-        self.percent = percent
         self.current_pv = current_pv / 1000.0
         self.current = current / 1000.0
         self.voltages = [voltage_cell_1 / 1000.0, voltage_cell_2 / 1000.0, voltage_cell_3 / 1000.0, voltage_cell_4 / 1000.0, voltage_cell_5 / 1000.0, voltage_cell_6 / 1000.0]
@@ -278,8 +277,23 @@ class Frame15(Frame):
 class UnknownFrame(Frame):
     pass
 
+class EmptyFrame(Frame):
 
-def read_file(path):
+    def __init__(self, **kwargs):
+        super(EmptyFrame, self).__init__({
+            "body": None,
+            "type": None
+        })
+
+        self.__dict__.update(kwargs)
+
+    def __getattr__(self, item):
+        return ""
+
+    def __repr__(self):
+        return "<EmptyFrame>"
+
+def decode_file(path):
 
     with open(path,'rb') as f:
         body = f.read()
@@ -338,12 +352,13 @@ def read_file(path):
 
     return frames
 
-path = "R:\Phantom\Log Test\Loft 2\DJIFlightRecord_2016-06-25_[13-10-22].txt" #folder + "\\" + f
+if __name__ == "__main__":
+    path = "R:\Phantom\Log Test\Loft 2\DJIFlightRecord_2016-06-25_[13-10-22].txt" #folder + "\\" + f
 
-frames = read_file(path)
+    frames = decode_file(path)
 
-for f in frames:
-    if isinstance(f, HomeFrame):
-        print f
-        break
+    for f in frames:
+        if isinstance(f, HomeFrame):
+            print f
+            break
 
