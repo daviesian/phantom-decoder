@@ -10,6 +10,10 @@ and are stored in `/DJI/dji.pilot/FlightRecord/` on Android.
 Although they have the `.txt` extension, the data is stored in an undocumented, proprietary format. This repository 
 contains Python scripts for decoding the files into more useful `.csv` files, ideal for use with software like [Dashware](http://www.dashware.net/).
 
+## How to use
+
+Run `python txt2csv.py path-to-file.TXT`. This will create `path-to-file.csv` in the same directory as the original `.TXT` file.
+
 ## File Format
 
 Bytes 0-11 are some sort of header and have not yet been decoded.
@@ -41,8 +45,8 @@ This frame is always 53 (`0x35`) bytes long. Appears at ~10 Hz
 Offset  | Type                | Field                    | Unit
 --------|---------------------|--------------------------|------------
       0 | 64-bit double       | Longitude                | radians
-      4 | 64-bit double       | Latitude                 | radians
-      8 | 16-bit signed int   | Ascent above start point | metres * 10
+      2 | 64-bit double       | Latitude                 | radians
+      4 | 16-bit signed int   | Ascent above start point | metres * 10
      10 | 16-bit signed int   | X Speed                  | m/s * 10
      12 | 16-bit signed int   | Y Speed                  | m/s * 10
      14 | 16-bit signed int   | Z Speed                  | m/s * 10
@@ -64,9 +68,51 @@ Offset  | Type                | Field                    | Unit
 
 #### Frame 2 - **Home Point**
 
+This frame reports details of the current Home Point.
+
+```
+Offset  | Type           | Field             | Unit
+--------|----------------|-------------------|------------
+      0 | 64-bit double  | Latitude          | radians
+      4 | 64-bit double  | Longitude         | radians
+      8 | 16-bit float   | Pressure Altitude | metres * 10
+```
+
+Note that *pressure altitude* is the barometric altitude assuming a pressure at sea-level of 1013.25 millibars. See https://en.wikipedia.org/wiki/Pressure_altitude
+
 #### Frame 3 - **Gimbal**
 
+This frame reports the current state of the camera gimbal.
+
+```
+Offset  | Type                | Field                   | Unit
+--------|---------------------|-------------------------|------------
+      0 | 16-bit signed int   | Pitch                   | degrees * 10
+      2 | 16-bit signed int   | Roll                    | degrees * 10
+      4 | 16-bit signed int   | Yaw (compass heading)   | degrees * 10
+      6 | unsigned byte       | Mode                    | ?
+      7 | unsigned byte       | Roll Adjust             | ?
+      8 | unsigned byte       | Yaw Angle               | ?
+      9 | unsigned byte       | Is Auto Calibration     | ?
+     10 | unsigned byte       | Auto Calibration Result | ?
+     11 | unsigned byte       | Version                 | ?
+     12 | 16-bit unsigned int | Counter                 | ?
+```
+
 #### Frame 4 - **Controller**
+
+This frame reports the status of the radio controller at a frequency of ~10 Hz.
+
+```
+Offset  | Type                | Field    | Unit
+--------|---------------------|----------|------------
+      0 | 16-bit unsigned int | Throttle | position (0 - 2048)
+      2 | 16-bit unsigned int | Rudder   | position (0 - 2048)
+      4 | 16-bit unsigned int | Elevator | position (0 - 2048)
+      6 | 16-bit unsigned int | Aileron  | position (0 - 2048)
+```
+
+The remaining bytes certainly contain the state of all the other controls, but are yet to be decoded.
 
 #### Frame 5 - **Time**
 
