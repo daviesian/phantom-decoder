@@ -26,9 +26,9 @@ From byte 12 onwards, the file contains a stream of variable length frames. Each
 * Byte n+1: **0xFF** - Frame delimiter. This isn't really necessary, but it's there anyway.
 
 ```
--------------------------------------------------------------------------------------
-| type (1 byte) | length (1 byte) | payload (n bytes)                        | 0xFF |
--------------------------------------------------------------------------------------
+|---------------|-----------------|------------------------------------------|------|----
+| type (1 byte) | length (1 byte) | payload (n bytes)                        | 0xFF | ...
+|---------------|-----------------|------------------------------------------|------|----
 ```
 
 
@@ -45,25 +45,25 @@ This frame is always 53 (`0x35`) bytes long. Appears at ~10 Hz
 Offset  | Type                | Field                    | Unit
 --------|---------------------|--------------------------|------------
       0 | 64-bit double       | Longitude                | radians
-      2 | 64-bit double       | Latitude                 | radians
-      4 | 16-bit signed int   | Ascent above start point | metres * 10
-     10 | 16-bit signed int   | X Speed                  | m/s * 10
-     12 | 16-bit signed int   | Y Speed                  | m/s * 10
-     14 | 16-bit signed int   | Z Speed                  | m/s * 10
-     16 | 16-bit signed int   | Pitch                    | degrees * 10
-     18 | 16-bit signed int   | Roll                     | degrees * 10
-     20 | 16-bit signed int   | Yaw (compass heading)    | degrees * 10
-     22 | 16-bit unsigned int | Fly C State              | ?
-     24 | 16-bit ?            | ?                        | ?
-     26 | 16-bit ?            | ?                        | ?
-     28 | unsigned byte       | Visible GPS satellites   | count
-     29 | unsigned byte       | Flight Action            | ?
-     30 | unsigned byte       | Motor Start Failed Cause | ?
-     31 | unsigned byte       | Non GPS Cause            | ?
-     32 | unsigned byte       | Battery                  | ?
-     33 | unsigned byte       | S Wave Height            | ?
-     34 | 16-bit unsigned int | Fly time                 | seconds * 10
-     36 | 16-bit unsigned int | Motor Revolution         | ?
+      8 | 64-bit double       | Latitude                 | radians
+     16 | 16-bit signed int   | Ascent above start point | metres * 10
+     18 | 16-bit signed int   | X Speed                  | m/s * 10
+     20 | 16-bit signed int   | Y Speed                  | m/s * 10
+     22 | 16-bit signed int   | Z Speed                  | m/s * 10
+     24 | 16-bit signed int   | Pitch                    | degrees * 10
+     26 | 16-bit signed int   | Roll                     | degrees * 10
+     28 | 16-bit signed int   | Yaw (compass heading)    | degrees * 10
+     30 | 16-bit unsigned int | Fly C State              | ?
+     32 | 16-bit ?            | ?                        | 
+     34 | 16-bit ?            | ?                        | 
+     36 | unsigned byte       | Visible GPS satellites   | count
+     37 | unsigned byte       | Flight Action            | ?
+     38 | unsigned byte       | Motor Start Failed Cause | ?
+     39 | unsigned byte       | Non GPS Cause            | ?
+     40 | unsigned byte       | Battery                  | ?
+     41 | unsigned byte       | S Wave Height            | ?
+     42 | 16-bit unsigned int | Fly time                 | seconds * 10
+     44 | 16-bit unsigned int | Motor Revolution         | ?
 ```
 
 #### Frame 2 - **Home Point**
@@ -115,6 +115,19 @@ Offset  | Type                | Field    | Unit
 The remaining bytes certainly contain the state of all the other controls, but are yet to be decoded.
 
 #### Frame 5 - **Time**
+
+This frame contains a current UTC time stamp, among other things
+
+```
+Offset  | Type                | Field    | Unit
+--------|---------------------|----------|------------
+      0 | byte                | ?        | 
+      1 | byte                | ?        |
+      2 | 32-bit float        | Speed    | m/s
+      6 | 32-bit float        | Rudder   | position (0 - 2048)
+     10 | 64-bit unsigned int | Elevator | position (0 - 2048)
+```
+
 
 #### Frame 6 - *Unknown*
 
