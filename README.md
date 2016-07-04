@@ -138,7 +138,7 @@ This frame contains general raw information about the battery state.
 ```
 Offset  | Type                | Field      | Unit
 --------|---------------------|------------|------------
-      0 | unsigned byte       | Level            | Percent
+      0 | unsigned byte       | Level            | percent
       1 | 16-bit unsigned int | Current PV       | ? * 1000
       3 | 16-bit unsigned int | Current Capacity | mAh
       5 | 16-bit unsigned int | Total Capacity   | mAh
@@ -154,17 +154,59 @@ Offset  | Type                | Field      | Unit
      16 | 16-bit unsigned int | Cell 6 Voltage   | volts * 1000
      16 | 16-bit unsigned int | Serial No.       | 
      16 | 16-bit DOS date     | Manufacture Date | see below
-     16 | 16-bit unsigned int | Temperature      | kelvin * 10
+     16 | 16-bit unsigned int | Temperature      | Kelvin * 10
 ```
 
 The Manufacture Date is packed into 16 bits using the MS-DOS Date encoding. See `decoder.py` for decoding.
 
 #### Frame 8 - **Battery 2**
 
+This frame contains calculated battery statistics.
+
+```
+Offset  | Type                | Field             | Unit
+--------|---------------------|-------------------|------------
+      0 | 16-bit unsigned int | Useful Time       | seconds
+      2 | 16-bit unsigned int | Go Home Time      | seconds
+      4 | 16-bit unsigned int | Land Time         | seconds
+      6 | 16-bit unsigned int | Go Home Battery   | ?
+      8 | 16-bit unsigned int | Land Battery      | ?
+     10 | 32-bit float        | Safe Fly Radius   | ?
+     14 | 32-bit float        | Volume Consume    | ?
+     18 | 16-bit unsigned int | Status            | ?
+     20 | 16-bit unsigned int | Go Home Status    | ?
+     22 | 16-bit unsigned int | Go Home Countdown | ?
+     24 | 16-bit unsigned int | Voltage           | volts * 1000
+     26 | byte                | Level             | percent
+     27 | byte                | Low Warning       | ?
+```
+
 #### Frame 9 - **Message**
+
+This frame is recorded when the DJI GO app displays messages to the pilot. The entire payload is an ASCII string. There is no null-termination.
 
 #### Frame 11 - *Unknown*
 
 #### Frame 13 - **Aircraft**
+
+This frame contains details of the aircraft.
+
+```
+Offset  | Type                | Field                 | Unit
+--------|---------------------|-----------------------|------------
+      0 | byte                | Drone Type            | ?
+      1 | byte                | App Type              | ?
+      2 | byte                | App Major Version     | 
+      3 | byte                | App Minor Version     | 
+      4 | byte                | App Revision          | 
+      5 | 10-byte string      | Aircraft Serial No.   | 
+     15 | 32-byte string      | Aircraft Name         |
+     47 | 64-bit unsigned int | Activation Time       | seconds since UNIX epoch
+     57 | 10-byte string      | Camera Serial No.     |
+     67 | 10-byte string      | Controller Serial No. |
+     77 | 10-byte string      | Battery Serial No.    |
+```
+
+The `Activaction Time` field contains the time when the aircraft was first powered on.
 
 #### Frame 15 - *Unknown*
