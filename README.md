@@ -133,6 +133,32 @@ Offset  | Type                | Field      | Unit
 
 #### Frame 7 - **Battery 1**
 
+This frame contains general raw information about the battery state.
+
+```
+Offset  | Type                | Field      | Unit
+--------|---------------------|------------|------------
+      0 | unsigned byte       | Level            | Percent
+      1 | 16-bit unsigned int | Current PV       | ? * 1000
+      3 | 16-bit unsigned int | Current Capacity | mAh
+      5 | 16-bit unsigned int | Total Capacity   | mAh
+      7 | unsigned byte       | Life             | ?
+      8 | 32-bit unsigned int | Charge Cycles    | count
+     12 | 16-bit unsigned int | Error Type       | ?
+     14 | 16-bit signed int   | Current          | mA * 1000
+     16 | 16-bit unsigned int | Cell 1 Voltage   | volts * 1000
+     16 | 16-bit unsigned int | Cell 2 Voltage   | volts * 1000
+     16 | 16-bit unsigned int | Cell 3 Voltage   | volts * 1000
+     16 | 16-bit unsigned int | Cell 4 Voltage   | volts * 1000
+     16 | 16-bit unsigned int | Cell 5 Voltage   | volts * 1000
+     16 | 16-bit unsigned int | Cell 6 Voltage   | volts * 1000
+     16 | 16-bit unsigned int | Serial No.       | 
+     16 | 16-bit DOS date     | Manufacture Date | see below
+     16 | 16-bit unsigned int | Temperature      | kelvin * 10
+```
+
+The Manufacture Date is packed into 16 bits using the MS-DOS Date encoding. See `decoder.py` for decoding.
+
 #### Frame 8 - **Battery 2**
 
 #### Frame 9 - **Message**
