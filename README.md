@@ -119,13 +119,13 @@ The remaining bytes certainly contain the state of all the other controls, but a
 This frame contains a current UTC time stamp, among other things
 
 ```
-Offset  | Type                | Field    | Unit
---------|---------------------|----------|------------
-      0 | byte                | ?        | 
-      1 | byte                | ?        |
-      2 | 32-bit float        | Speed    | m/s
-      6 | 32-bit float        | Rudder   | position (0 - 2048)
-     10 | 64-bit unsigned int | Elevator | position (0 - 2048)
+Offset  | Type                | Field      | Unit
+--------|---------------------|------------|------------
+      0 | byte                | ?          | 
+      1 | byte                | ?          |
+      2 | 32-bit float        | Speed      | m/s
+      6 | 32-bit float        | Distance   | metres
+     10 | 64-bit unsigned int | Time (UTC) | milliseconds since UNIX epoch
 ```
 
 
