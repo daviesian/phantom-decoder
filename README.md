@@ -136,8 +136,8 @@ Offset  | Type                | Field      | Unit
 This frame contains general raw information about the battery state.
 
 ```
-Offset  | Type                | Field      | Unit
---------|---------------------|------------|------------
+Offset  | Type                | Field            | Unit
+--------|---------------------|------------------|------------
       0 | unsigned byte       | Level            | percent
       1 | 16-bit unsigned int | Current PV       | ? * 1000
       3 | 16-bit unsigned int | Current Capacity | mAh
