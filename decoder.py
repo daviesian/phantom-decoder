@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import struct
 from math import degrees
 import datetime
@@ -5,7 +7,7 @@ import time
 import os
 
 def hexstr(arr):
-    return " ".join([format(ord(x), "02x") for x in arr])
+    return " ".join([format(x, "02x") for x in arr])
 
 class Frame(object):
 
@@ -167,7 +169,7 @@ class BatteryFrame(Frame):
         self.current_pv = current_pv / 1000.0
         self.current = current / 1000.0
         self.voltages = [voltage_cell_1 / 1000.0, voltage_cell_2 / 1000.0, voltage_cell_3 / 1000.0, voltage_cell_4 / 1000.0, voltage_cell_5 / 1000.0, voltage_cell_6 / 1000.0]
-        self.manufacture_date = datetime.date((ord(self.body[-4]) >> 1) + 1980,((ord(self.body[-4]) & 0x1) << 3) | (ord(self.body[-5]) >> 5),ord(self.body[-5]) & 0x1f)
+        self.manufacture_date = datetime.date((self.body[-4] >> 1) + 1980,((self.body[-4] & 0x1) << 3) | (self.body[-5] >> 5),self.body[-5] & 0x1f)
         self.temperature = temperature / 10 - 273.15
 
     def __repr__(self):
@@ -304,8 +306,8 @@ def decode_file(path):
 
     i = 0
     while i < len(body):
-        frame_type = ord(body[i])
-        frame_size = ord(body[i+1])
+        frame_type = body[i]
+        frame_size = body[i+1]
         frame_end = i+2+frame_size
         frame_body = body[i+2:frame_end]
         trailer = body[frame_end]
@@ -348,7 +350,7 @@ def decode_file(path):
             frames.append(UnknownFrame(f))
 
 
-    print "Parsed %d frames" % len(frames)
+    print("Parsed %d frames" % len(frames))
 
     return frames
 
@@ -359,6 +361,6 @@ if __name__ == "__main__":
 
     for f in frames:
         if isinstance(f, HomeFrame):
-            print f
+            print(f)
             break
 
