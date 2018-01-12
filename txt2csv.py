@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import decoder
 import os
 import sys
@@ -103,25 +105,25 @@ def frames_to_lines(frames):
 
 if __name__ == "__main__":
 
-    print sys.argv[1]
+    print(sys.argv[1])
     if len(sys.argv) >= 2:
         path = sys.argv[1]
     else:
-        print "Please supply the path of the DJI Flight Log .txt file to convert"
+        print("Please supply the path of the DJI Flight Log .txt file to convert")
 
     if len(sys.argv) >= 3:
         outpath = sys.argv[3]
     else:
         outpath = os.path.dirname(path) + os.sep + os.path.basename(path) + ".csv"
 
-    print "Loading %s" % path
+    print("Loading %s" % path)
     frames = decoder.decode_file(path)
 
-    print "Decoding file"
+    print("Decoding file")
     lines = frames_to_lines(frames)
 
 
-    print "Writing %d lines to %s" % (len(lines), outpath)
+    print("Writing %d lines to %s" % (len(lines), outpath))
     with open(outpath, "w") as csv:
         csv.writelines([line + "\n" for line in lines])
-    print "Done"
+    print("Done")

@@ -1,8 +1,18 @@
+from __future__ import print_function
+
 import struct
 from math import degrees
 import datetime
 import time
 import os
+import sys
+
+old_ord = ord
+def ord(x):
+    if sys.version_info > (3,0,0):
+        return x
+    else:
+        return old_ord(x)
 
 def hexstr(arr):
     return " ".join([format(ord(x), "02x") for x in arr])
@@ -348,7 +358,7 @@ def decode_file(path):
             frames.append(UnknownFrame(f))
 
 
-    print "Parsed %d frames" % len(frames)
+    print("Parsed %d frames" % len(frames))
 
     return frames
 
@@ -359,6 +369,6 @@ if __name__ == "__main__":
 
     for f in frames:
         if isinstance(f, HomeFrame):
-            print f
+            print(f)
             break
 
