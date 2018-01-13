@@ -303,14 +303,19 @@ class EmptyFrame(Frame):
     def __repr__(self):
         return "<EmptyFrame>"
 
+def decode_buffer(f):
+    body = f['body']
+
+
 def decode_file(path):
 
     with open(path,'rb') as f:
         body = f.read()
 
-    __header = body[:12]
-    body = body[12:]
+    __header = body[:100]
+    body = body[100:]
     frames = []
+    print("Body len: %d" % len(body))
 
     i = 0
     while i < len(body):
@@ -319,7 +324,7 @@ def decode_file(path):
         frame_end = i+2+frame_size
         frame_body = body[i+2:frame_end]
         trailer = body[frame_end]
-        if trailer != '\xff':
+        if trailer != 0xff:
             # Probably the end of the file. Don't understand the final chunk yet.
             break
 
