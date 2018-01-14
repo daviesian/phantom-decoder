@@ -1,8 +1,18 @@
+from __future__ import print_function
+
 import struct
 from math import degrees
 import datetime
 import time
 import os
+import sys
+
+old_ord = ord
+def ord(x):
+    if sys.version_info > (3,0,0):
+        return x
+    else:
+        return old_ord(x)
 
 def hexstr(arr):
     return " ".join([format(ord(x), "02x") for x in arr])
@@ -244,17 +254,21 @@ class AircraftFrame(Frame):
         app_version_1, \
         app_version_2, \
         app_version_3, \
-        self.aircraft_serial_no, \
+        aircraft_serial_no, \
         aircraft_name, \
         active_timestamp, \
-        self.camera_serial_no, \
-        self.controller_serial_no, \
-        self.battery_serial_no, \
+        camera_serial_no, \
+        controller_serial_no, \
+        battery_serial_no, \
             = struct.unpack_from("<BBBBB10s32sQ10s10s10s", self.body)
 
         self.app_version = [app_version_1, app_version_2, app_version_3]
-        self.aircraft_name = aircraft_name.replace("\0","")
+        self.aircraft_serial_no = str(aircraft_serial_no)
+        self.aircraft_name = str(aircraft_name).replace("\0","")
         self.active_timestamp = time.ctime(active_timestamp)
+        self.camera_serial_no = str(camera_serial_no)
+        self.controller_serial_no = str(controller_serial_no)
+        self.battery_serial_no = str(battery_serial_no)
 
     def __repr__(self):
         return "<AircraftFrame: %s %s %s %s %s %s %s %s %s>" % (self.drone_type,
@@ -293,14 +307,19 @@ class EmptyFrame(Frame):
     def __repr__(self):
         return "<EmptyFrame>"
 
+def decode_buffer(f):
+    body = f['body']
+
+
 def decode_file(path):
 
     with open(path,'rb') as f:
         body = f.read()
 
-    __header = body[:12]
-    body = body[12:]
+    __header = body[:100]
+    body = body[100:]
     frames = []
+    print("Body len: %d" % len(body))
 
     i = 0
     while i < len(body):
@@ -309,7 +328,7 @@ def decode_file(path):
         frame_end = i+2+frame_size
         frame_body = body[i+2:frame_end]
         trailer = body[frame_end]
-        if trailer != '\xff':
+        if trailer != 0xff:
             # Probably the end of the file. Don't understand the final chunk yet.
             break
 
@@ -348,7 +367,7 @@ def decode_file(path):
             frames.append(UnknownFrame(f))
 
 
-    print "Parsed %d frames" % len(frames)
+    print("Parsed %d frames" % len(frames))
 
     return frames
 
@@ -359,6 +378,6 @@ if __name__ == "__main__":
 
     for f in frames:
         if isinstance(f, HomeFrame):
-            print f
+            print(f)
             break
 
