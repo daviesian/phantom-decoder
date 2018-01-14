@@ -254,17 +254,21 @@ class AircraftFrame(Frame):
         app_version_1, \
         app_version_2, \
         app_version_3, \
-        self.aircraft_serial_no, \
+        aircraft_serial_no, \
         aircraft_name, \
         active_timestamp, \
-        self.camera_serial_no, \
-        self.controller_serial_no, \
-        self.battery_serial_no, \
+        camera_serial_no, \
+        controller_serial_no, \
+        battery_serial_no, \
             = struct.unpack_from("<BBBBB10s32sQ10s10s10s", self.body)
 
         self.app_version = [app_version_1, app_version_2, app_version_3]
-        self.aircraft_name = aircraft_name.replace("\0","")
+        self.aircraft_serial_no = str(aircraft_serial_no)
+        self.aircraft_name = str(aircraft_name).replace("\0","")
         self.active_timestamp = time.ctime(active_timestamp)
+        self.camera_serial_no = str(camera_serial_no)
+        self.controller_serial_no = str(controller_serial_no)
+        self.battery_serial_no = str(battery_serial_no)
 
     def __repr__(self):
         return "<AircraftFrame: %s %s %s %s %s %s %s %s %s>" % (self.drone_type,
